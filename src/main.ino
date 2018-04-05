@@ -400,7 +400,7 @@ void game_over_seq(int cursor_loc, int* target_loc) {
 
     const uint32_t FRAMES_PER_FLASHING_CHANGE = DUTY_CYCLE_TO_FRAMES(FLSH_GM_OVR_DUTY_CYCLE_MS);
 
-    int seq_counter = 0;
+    unsigned int seq_counter = 0;
     uint32_t flash_counter = FRAMES_PER_FLASHING_CHANGE;
     boolean flashing_on = false; // this will cause to finish with 'off'
 
