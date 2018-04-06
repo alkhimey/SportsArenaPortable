@@ -141,6 +141,8 @@ void setup() {
     TCCR1B |= (1 << CS12) | (1 << CS10);  // 1024 presxaler
     TIMSK1 |= (1 << OCIE1A); // enable timer compare interrupt
     sei();//allow interrupts
+
+    Serial.println("Setup is complete");
 }
 
 
