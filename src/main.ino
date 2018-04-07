@@ -170,8 +170,9 @@ void setup() {
         start_level_waiting_seq(g_current_level);
         ready_set_go_seq();
         if (play_level(g_current_level) == false) {
-            delay(1.5 * ONE_SECOND_MS);
-            continue; // replay the level
+            // failure sequence is played from inside "play_lavel"
+
+            continue; // restart without advancing the level
         }
 
         g_current_level++;
@@ -480,6 +481,8 @@ void game_over_seq(int cursor_loc, int* target_loc) {
         seq_counter++;
         delay(FRAME_DELAY_MS);
     }
+
+    delay(1.5 * ONE_SECOND_MS);
 }
 
 
