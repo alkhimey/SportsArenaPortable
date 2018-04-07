@@ -77,7 +77,7 @@ Adafruit_NeoPixel g_strip = Adafruit_NeoPixel(NUM_LOCATIONS, NEO_PIXELS_PIN, NEO
 /*
  * Currently played or waiting to be played level.
  */
-int g_current_level;
+uint8_t g_current_level;
 
 /*
  * Was pushbutton pressed in last cycle?
@@ -106,12 +106,16 @@ unsigned int g_vibration_timer = 0;
 void setup() {
 
     g_strip.begin();
+    
+    g_strip.setBrightness(10); // oh my sore eyes...
+
     g_strip.show(); // initialize all pixels to 'off'
 
     randomSeed(analogRead(RANDOM_SEED_PIN));
     g_current_level = 0;
     g_pb_last_pass = false;
     Serial.begin(9600);
+    Serial.println( "Compiled: " __DATE__ ", " __TIME__ ", " __VERSION__);
 
     pinMode(PUSHBUTTON_PIN, INPUT);
     digitalWrite(PUSHBUTTON_PIN, HIGH); // turn on pullup resistors
@@ -143,25 +147,64 @@ void setup() {
     sei();//allow interrupts
 
     Serial.println("Setup is complete");
+
+    /******************
+     * Main Game Loop *
+     ******************/
+
+    if(is_initial_program_load()) {
+        Serial.println("IPL occured, reset level to 0 ");
+        g_current_level = 0;
+    } else {
+        g_current_level = EEPROM.read(EEPROM_ADDR_LAST_LEVEL); 
+        Serial.print("Read level from eeprom: ");
+        Serial.println(g_current_level);
+    }
+
+    while(g_current_level < TOTAL_LEVELS)
+    {
+        Serial.print("Writing level to eeprom: ");
+        Serial.println(g_current_level);
+        EEPROM.write(EEPROM_ADDR_LAST_LEVEL, g_current_level);
+        
+        start_level_waiting_seq(g_current_level);
+        ready_set_go_seq();
+        if (play_level(g_current_level) == false) {
+            delay(1.5 * ONE_SECOND_MS);
+            continue; // replay the level
+        }
+
+        g_current_level++;
+    }
+
 }
 
 
 void loop() {
-    g_current_level = EEPROM.read(EEPROM_ADDR_LAST_LEVEL);
-    for(int i = 0; i < TOTAL_LEVELS; i++) {
-
-        start_level_waiting_seq(g_current_level);
-        ready_set_go_seq();
-        if (play_level(g_current_level) == false)
-            break;
-
-        g_current_level ++;
-        EEPROM.write(EEPROM_ADDR_LAST_LEVEL, g_current_level);
-    }
-
-    delay(5*ONE_SECOND_MS);
+    // Everything is in setup function
 }
 
+/**
+ * Determine if this is the first power-up after
+ * fresh program was loaded into the flash.
+ */
+boolean is_initial_program_load()
+{
+    const String version_date = __DATE__ __TIME__;
+    uint16_t len = version_date.length();
+    boolean is_ipl = false;
+
+    for (unsigned int i = 0; i < len; i++) {
+        int addr = EEPROM_ADDR_VERSION_DATE + i;
+
+        if (EEPROM.read(addr) != version_date[i]) {
+            EEPROM.write(addr, version_date[i]);
+            is_ipl = true;
+        } 
+    }
+
+    return is_ipl;
+}
 
 /*
  * Plays the level logic
@@ -206,6 +249,8 @@ boolean play_level(int lvl_idx) {
                 if(target_loc[i] != INVALID_LOCATION && target_loc[i] == cursor_loc) {
 
                     stop_melody();
+
+                    /* TODO: victory sequence */
 
                     /* player hit a target */
                     return true;
@@ -282,15 +327,15 @@ boolean play_level(int lvl_idx) {
         g_strip.clear();
 
         for(int j=0; j < bg_size; j++) {
-            g_strip.setPixelColor(j, g_strip.Color(30, 30, 30));
+            g_strip.setPixelColor(j, COLOR_BG);
         }
 
-        g_strip.setPixelColor(cursor_loc, g_strip.Color(250,0 , 0));
+        g_strip.setPixelColor(cursor_loc, COLOR_CURSOR);
 
         for(int i = 0; i < MAX_TARGETS; i++) {
             if(target_loc[i] != INVALID_LOCATION &&
                !(target_loc[i] == cursor_loc && CONFIG[lvl_idx].corr_color == CURSOR)) {
-                 g_strip.setPixelColor(target_loc[i], g_strip.Color(0, 200, 10));
+                 g_strip.setPixelColor(target_loc[i], COLOR_TARGET);
             }
         }
 
@@ -379,11 +424,11 @@ void start_level_waiting_seq(int next_lvl_idx) {
             g_strip.clear();
 
             for(int j=0; j < g_current_level; j++) {
-                g_strip.setPixelColor(j, g_strip.Color(0, 200, 10));
+                g_strip.setPixelColor(j, COLOR_LEVEL_SELECT);
             }
 
             if(flashing_led_on) {
-                g_strip.setPixelColor(next_lvl_idx, g_strip.Color(0, 200, 10));
+                g_strip.setPixelColor(next_lvl_idx, COLOR_LEVEL_SELECT);
             }
 
             g_strip.show();
@@ -404,7 +449,7 @@ void game_over_seq(int cursor_loc, int* target_loc) {
 
     unsigned int seq_counter = 0;
     uint32_t flash_counter = FRAMES_PER_FLASHING_CHANGE;
-    boolean flashing_on = false; // this will cause to finish with 'off'
+    boolean flashing_on = true; // this will cause to finish with 'on'
 
     // multiply by 2 because FRAMES_PER_FLASHING_CHANGE is half a cycle
     while(seq_counter < GAME_OVER_FLASHES * 2 * FRAMES_PER_FLASHING_CHANGE) {
@@ -420,13 +465,13 @@ void game_over_seq(int cursor_loc, int* target_loc) {
             if(flashing_on == false) {
                 request_vibration(VIB_PULSE_DUR_MS);
             } else {
-                g_strip.setPixelColor(cursor_loc, g_strip.Color(250,0 , 0));
-
                 for(int i = 0; i < MAX_TARGETS; i++) {
                     if(target_loc[i] != INVALID_LOCATION) {
-                         g_strip.setPixelColor(target_loc[i], g_strip.Color(0, 200, 10));
+                         g_strip.setPixelColor(target_loc[i], COLOR_TARGET);
                     }
                 }
+
+                g_strip.setPixelColor(cursor_loc, COLOR_CURSOR);
             }
 
             g_strip.show();
@@ -449,6 +494,8 @@ boolean is_pb_rising() {
 
     if(pb_this_pass == LOW && g_pb_last_pass == HIGH) {
         g_pb_last_pass = LOW;
+
+        Serial.println("PB is raising...");
         return true;
     }
 

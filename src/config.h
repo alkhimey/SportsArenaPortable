@@ -106,14 +106,24 @@ typedef struct {
     
 
 /* *************************************************
- * Constants
+ * General constants 
  * *************************************************/
 
 #define NUM_LOCATIONS         16                       /// we use a 16 neo pixel ring
+#define INVALID_LOCATION       (-1)
+#define MAX_TARGETS            3
+
+#define EEPROM_ADDR_LAST_LEVEL   0x0
+#define EEPROM_ADDR_VERSION_DATE 0x1
+
+/* *************************************************
+ * Animation constants
+ * *************************************************/
+
 #define HALF_SECOND_MS        500
 #define ONE_SECOND_MS         1000
 #define TWO_SECOND_MS         2000
-#define FPS                   100                      /// system wide value, relevant for all sequences
+#define FPS                   100                      /// system wide value, relevant for all animation sequences
 #define FRAME_DELAY_MS        (ONE_SECOND_MS / FPS)
 #define SECONDS_PER_LEVEL     NUM_LOCATIONS
 #define FRAMES_PER_LEVEL      (SECONDS_PER_LEVEL * FPS) 
@@ -125,19 +135,18 @@ typedef struct {
 
 #define TIMER_1_INT_TIME       50  /// The interrupt is called every 50ms, if you change this value, you need to also change the timer setup code.
 
-#define GAME_OVER_FLASHES      4                       /// number of flashes in the game over sequence
+#define GAME_OVER_FLASHES      3                       /// number of flashes in the game over sequence
 #define READY_SET_GO_DELAY_MS (3*ONE_SECOND_MS)/2      /// delay between animation stages of ready-set-go sequence
 
 
-#define NOTE_DURATION_FACTOR_M10   11    // equals 1.2. ie if note duration is X, than the note+pause after note duration is 1.2x
-#define FACTOR_M10                 10
+/* *************************************************
+ * Colors
+ * *************************************************/
+const uint32_t COLOR_TARGET = Adafruit_NeoPixel::Color(0, 200, 10);
+const uint32_t COLOR_CURSOR = Adafruit_NeoPixel::Color(255, 0, 0);
+const uint32_t COLOR_BG     = Adafruit_NeoPixel::Color(30, 30, 30);
 
-#define INVALID_LOCATION       (-1)
-#define MAX_TARGETS            3
-
-
-
-#define EEPROM_ADDR_LAST_LEVEL 0x0
+const uint32_t COLOR_LEVEL_SELECT = Adafruit_NeoPixel::Color(0, 200, 10);
 
 /* *************************************************
  * Data and configuration
@@ -165,12 +174,16 @@ const LevelConfig CONFIG[] = {
 const int TOTAL_LEVELS = sizeof(CONFIG) / sizeof(CONFIG[0]);
 
 
+/* *************************************************
+ * Music related constants
+ * *************************************************/
+
+#define NOTE_DURATION_FACTOR_M10   11    // equals 1.2. ie if note duration is X, than the note+pause after note duration is 1.2x
+#define FACTOR_M10                 10
+
 int silent_melody_notes[]     = { HALT };
 int silent_melody_durations[] = { 0 }; 
 Melody silent_melody = { silent_melody_notes, silent_melody_durations, 100, false  }; // 120 BPM
-
-
-
 
 const PROGMEM int test_notes[] =      { NOTE_C4, NOTE_G3, NOTE_G3, NOTE_A3, NOTE_G3, PAUSE, NOTE_B3, NOTE_C4, HALT };
 const PROGMEM int test_durations[]  = { 4,       8,       8,       4,       4,       4,     4,       4,       0    }; 
