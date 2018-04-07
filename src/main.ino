@@ -261,7 +261,7 @@ boolean play_level(int lvl_idx) {
             stop_melody();
 
             /* reaching here indicates that the player was not sucessfull */
-            game_over_seq(cursor_loc, target_loc);
+            failure_seq(cursor_loc, target_loc);
 
             /* after game over sequence, return to main menu */
             return false;
@@ -346,8 +346,8 @@ boolean play_level(int lvl_idx) {
         delay(FRAME_DELAY_MS);
     }
 
-    /* reaching here indicates that the player was not sucessfull */
-    game_over_seq(cursor_loc, target_loc);
+    /* timeout */
+    failure_seq(cursor_loc, target_loc);
 
     return false;
 }
@@ -444,7 +444,7 @@ void start_level_waiting_seq(int next_lvl_idx) {
  *
  * The cursor and the targets will be flashing.
  */
-void game_over_seq(int cursor_loc, int* target_loc) {
+void failure_seq(int cursor_loc, int* target_loc) {
 
     const uint32_t FRAMES_PER_FLASHING_CHANGE = DUTY_CYCLE_TO_FRAMES(FLSH_GM_OVR_DUTY_CYCLE_MS);
 
