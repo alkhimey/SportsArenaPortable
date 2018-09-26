@@ -1,13 +1,13 @@
 /**
  * @author  Artium Nihamkin <artium@nihamkin.com>
  * @version 2.0
- * @date December 2014
+ * @date 2014-2018
  *
  * @section LICENSE
  *
  * The MIT License (MIT)
  *
- * Copyright (c) 2014-2017 Artium Nihamkin
+ * Copyright (c) 2014-2018 Artium Nihamkin
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -170,7 +170,7 @@ void setup() {
         start_level_waiting_seq(g_current_level);
         ready_set_go_seq();
         if (play_level(g_current_level) == false) {
-            // failure sequence is played from inside "play_lavel"
+            // failure sequence is played from inside "play_level"
 
             continue; // restart without advancing the level
         }
@@ -210,8 +210,8 @@ boolean is_initial_program_load()
 /*
  * Plays the level logic
  *
- * Each level has it's own configuration parametrs which are
- * stroed in the CONFIG constant.
+ * Each level has it's own configuration parameters which are
+ * stored in the CONFIG constant.
  *
  */
 boolean play_level(int lvl_idx) {
@@ -220,7 +220,7 @@ boolean play_level(int lvl_idx) {
     int bg_size = g_strip.numPixels();
 
     int cursor_loc = 0;
-    int cursor_counter = 0; // count frames untill cursor needs to move to next position
+    int cursor_counter = 0; // count frames until cursor needs to move to next position
     const int cursor_frames_per_move = FPS / (int)CONFIG[lvl_idx].cursor_speed;
     const int target_frames_per_move = TIME_BETWEEN_TARGET_UPDT_MS / FRAME_DELAY_MS;
     int prev_target_mv_dir = -1;
@@ -260,7 +260,7 @@ boolean play_level(int lvl_idx) {
 
             stop_melody();
 
-            /* reaching here indicates that the player was not sucessfull */
+            /* reaching here indicates that the player was not successfull */
             failure_seq(cursor_loc, target_loc);
 
             /* after game over sequence, return to main menu */
@@ -268,7 +268,7 @@ boolean play_level(int lvl_idx) {
         }
 
 
-        /* background indicates how much seconds left before the end of level */
+        /* background indicates how many seconds left before the end of level */
         bg_size = ROUND_UP_DIVISION((FRAMES_PER_LEVEL - i), FPS);
 
         if(cursor_counter != cursor_frames_per_move) {
@@ -313,8 +313,7 @@ boolean play_level(int lvl_idx) {
                     break;
             }
 
-
-
+            // This handles everything except random walk
             for(int i = 0; i < MAX_TARGETS; i++) {
                 if(target_loc[i] != INVALID_LOCATION) {
                     target_loc[i] = (target_loc[i] + NUM_LOCATIONS + move_direction) % NUM_LOCATIONS;

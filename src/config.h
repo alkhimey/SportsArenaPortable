@@ -1,13 +1,13 @@
 /**
  * @author  Artium Nihamkin <artium@nihamkin.com>
  * @version 2.0
- * @date December 2014 
+ * @date 2014-2018
  *
  * @section LICENSE
  *
  * The MIT License (MIT)
  *
- * Copyright (c) 2014 Artium Nihamkin
+ * Copyright (c) 2018 Artium Nihamkin
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
