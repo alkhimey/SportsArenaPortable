@@ -34,7 +34,7 @@
  * http://www.arcade-museum.com/game_detail.php?game_id=9730
  *
  * The game itself is simple. A colored cursor light is circling around. The user needs to push the button
- * in time so that the cursor light  stops on top of one of the target lights.
+ * in time so that the cursor light stops on top of one of the target lights.
  *
  * There are 16 different levels. Levels get progressively harder: higher speed, less targets
  * and additional surprises.
@@ -100,7 +100,7 @@ unsigned int g_sound_timer = 0;
 unsigned int g_vibration_timer = 0;
 
 /* *************************************************
- * Functionms
+ * Functions
  * *************************************************/
 
 void setup() {
