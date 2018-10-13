@@ -50,6 +50,7 @@
  *
  */
 
+#include <avr/wdt.h>
 #include <EEPROM.h>
 #include <Adafruit_NeoPixel.h>
 #include "pitches.h"
@@ -85,6 +86,10 @@ uint8_t g_current_level;
  */
 int g_pb_last_pass = HIGH;
 
+/*
+ * Use separate variable for both functions
+ */
+int g_pb_last_pass_falling = HIGH;
 
 /*
  * Currently playing melody.
@@ -114,8 +119,9 @@ void setup() {
     randomSeed(analogRead(RANDOM_SEED_PIN));
     g_current_level = 0;
     g_pb_last_pass = false;
+    g_pb_last_pass_falling = false;
     Serial.begin(9600);
-    Serial.println( "Compiled: " __DATE__ ", " __TIME__ ", " __VERSION__);
+    Serial.println( "Compiled: " __DATE__ ", " __TIME__ ", GCC Version:" __VERSION__);
 
     pinMode(PUSHBUTTON_PIN, INPUT);
     digitalWrite(PUSHBUTTON_PIN, HIGH); // turn on pullup resistors
@@ -145,6 +151,9 @@ void setup() {
     TCCR1B |= (1 << CS12) | (1 << CS10);  // 1024 presxaler
     TIMSK1 |= (1 << OCIE1A); // enable timer compare interrupt
     sei();//allow interrupts
+
+
+    stop_melody();
 
     Serial.println("Setup is complete");
 
@@ -351,6 +360,34 @@ boolean play_level(int lvl_idx) {
     return false;
 }
 
+// Input a value 0 to 255 to get a color value.
+// The colours are a transition r - g - b - back to r.
+uint32_t Wheel(byte WheelPos) {
+  if(WheelPos < 85) {
+   return g_strip.Color(WheelPos * 3, 255 - WheelPos * 3, 0);
+  } else if(WheelPos < 170) {
+   WheelPos -= 85;
+   return g_strip.Color(255 - WheelPos * 3, 0, WheelPos * 3);
+  } else {
+   WheelPos -= 170;
+   return g_strip.Color(0, WheelPos * 3, 255 - WheelPos * 3);
+  }
+}
+
+/*
+ * Sequence played waiting the player to reset the toy after a hard reset
+ * was detected.
+ */
+void reset_waiting_seq() {
+    
+    for(uint16_t i=0; i<g_strip.numPixels(); i++) {
+        g_strip.setPixelColor(i, Wheel( i * ( 255 / (g_strip.numPixels() -1) )));
+        g_strip.show();
+    }
+    
+    while(1) {}
+}
+
 /*
  * Ready, set go sequence
  *
@@ -407,12 +444,33 @@ void start_level_waiting_seq(int next_lvl_idx) {
 
 
     // TODO: Artium rm debug -or- waiting melody
-    request_melody(&bond_melody);
+    // request_melody(&bond_melody);
+    bool pb_holding = digitalRead(PUSHBUTTON_PIN) == LOW; // LOW mean PB pressed
+    uint32_t frame_counter_for_reset = 0;
 
     while(1) {
 
+        if (pb_holding && 
+            frame_counter_for_reset < FRAMES_DELAY_FOR_HARD_RESET) {
+
+            frame_counter_for_reset++;
+
+            if (frame_counter_for_reset >= FRAMES_DELAY_FOR_HARD_RESET) {
+                Serial.println("Ok, clearing data. User will have to reset manually...");
+                Serial.flush();
+                // Override first byte. Will cause IPL after reset
+                EEPROM.write(EEPROM_ADDR_VERSION_DATE, 0x0);
+                reset_waiting_seq();
+            }   
+        }
+
         if(is_pb_rising()) {
-           return;
+          pb_holding = true;
+        }
+
+        if(is_pb_falling()) {
+            pb_holding = false;
+            return;
         }
 
         if(flash_counter < FRAMES_PER_FLASHING_CHANGE) {
@@ -484,8 +542,6 @@ void failure_seq(int cursor_loc, int* target_loc) {
     delay(1.5 * ONE_SECOND_MS);
 }
 
-
-
 /**
  * Returns true is pb is rising (went from off to on). Updates
  * last pass variable
@@ -505,8 +561,29 @@ boolean is_pb_rising() {
     return false;
 }
 
+/**
+ * Returns true is pb is falling (went from on to off). Updates
+ * last pass variable
+ */
+boolean is_pb_falling() {
+
+    int pb_this_pass = digitalRead(PUSHBUTTON_PIN);
+
+    if(pb_this_pass == HIGH && g_pb_last_pass_falling == LOW) {
+        g_pb_last_pass_falling = HIGH;
+
+        Serial.println("PB is falling...");
+        return true;
+    }
+
+    g_pb_last_pass_falling = pb_this_pass;
+    return false;
+}
+
+
 void init_pb_last_pass() {
     g_pb_last_pass = digitalRead(PUSHBUTTON_PIN);
+    g_pb_last_pass_falling =  digitalRead(PUSHBUTTON_PIN);
 }
 
 

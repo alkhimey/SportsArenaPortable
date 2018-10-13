@@ -75,7 +75,7 @@ enum TargetBehaviour {
 };
 
 /*
- * Speed in movments per seconds 
+ * Speed in movements per seconds 
  */
 enum CursorSpeed {
   SPEED_1 = 8,
@@ -138,6 +138,8 @@ typedef struct {
 #define GAME_OVER_FLASHES      3                       /// number of flashes in the game over sequence
 #define READY_SET_GO_DELAY_MS (3*ONE_SECOND_MS)/2      /// delay between animation stages of ready-set-go sequence
 
+
+#define FRAMES_DELAY_FOR_HARD_RESET 5*FPS /// Holding the button this much during the level selection will hard reset game
 
 /* *************************************************
  * Colors
@@ -210,7 +212,5 @@ const int bond_durations[] = {   8,16,16,8,4,8,8,8,
   4,8,4,8,3 };
   
 const Melody bond_melody = { bond_notes, bond_durations, 50, REPEAT  }; // 120 BPM = 100 cycles pre beat (20hz)
- 
- 
- 
+
 #endif
