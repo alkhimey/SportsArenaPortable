@@ -81,17 +81,6 @@ Adafruit_NeoPixel g_strip = Adafruit_NeoPixel(NUM_LOCATIONS, NEO_PIXELS_PIN, NEO
 uint8_t g_current_level;
 
 /*
- * Was pushbutton pressed in last cycle?
- * We use pullup resistor so hight is actually pb off.
- */
-int g_pb_last_pass = HIGH;
-
-/*
- * Use separate variable for both functions
- */
-int g_pb_last_pass_falling = HIGH;
-
-/*
  * Currently playing melody.
  */
 const Melody*      g_curr_melody_ptr;
@@ -118,8 +107,6 @@ void setup() {
 
     randomSeed(analogRead(RANDOM_SEED_PIN));
     g_current_level = 0;
-    g_pb_last_pass = false;
-    g_pb_last_pass_falling = false;
     Serial.begin(9600);
     Serial.println( "Compiled: " __DATE__ ", " __TIME__ ", GCC Version:" __VERSION__);
 
@@ -247,20 +234,23 @@ boolean play_level(int lvl_idx) {
         }
     }
 
-    init_pb_last_pass();
+    // LOW means PB is depressed
+    bool pb_dep_last_pass = digitalRead(PUSHBUTTON_PIN) == LOW; 
 
     /* Play the level for a predefined duration */
     for(int i = 0; i < FRAMES_PER_LEVEL; i++) {
 
+        bool pb_dep = digitalRead(PUSHBUTTON_PIN) == LOW; 
+
         /* accept push button rising edge logic */
-        if(is_pb_rising()) {
+        if(pb_dep && !pb_dep_last_pass) {
 
             for(int i = 0; i < MAX_TARGETS; i++) {
                 if(target_loc[i] != INVALID_LOCATION && target_loc[i] == cursor_loc) {
 
                     stop_melody();
 
-                    /* TODO: victory sequence */
+                    victory_seq(cursor_loc);
 
                     /* player hit a target */
                     return true;
@@ -378,7 +368,7 @@ uint32_t Wheel(byte WheelPos) {
  * Sequence played waiting the player to reset the toy after a hard reset
  * was detected.
  */
-void reset_waiting_seq() {
+void waiting_reset_seq() {
     
     for(uint16_t i=0; i<g_strip.numPixels(); i++) {
         g_strip.setPixelColor(i, Wheel( i * ( 255 / (g_strip.numPixels() -1) )));
@@ -440,18 +430,32 @@ void start_level_waiting_seq(int next_lvl_idx) {
     uint32_t flash_counter = FRAMES_PER_FLASHING_CHANGE;
     boolean flashing_led_on = true;
 
-    init_pb_last_pass();
-
 
     // TODO: Artium rm debug -or- waiting melody
     // request_melody(&bond_melody);
-    bool pb_holding = digitalRead(PUSHBUTTON_PIN) == LOW; // LOW mean PB pressed
+
+
+    bool pb_dep_last_pass = digitalRead(PUSHBUTTON_PIN) == LOW; // LOW mean PB pressed
     uint32_t frame_counter_for_reset = 0;
 
     while(1) {
 
-        if (pb_holding && 
-            frame_counter_for_reset < FRAMES_DELAY_FOR_HARD_RESET) {
+        bool pb_dep = digitalRead(PUSHBUTTON_PIN) == LOW;
+
+        // Falling edge - return from function and start a level
+        if (!pb_dep) {
+        
+            frame_counter_for_reset = 0;
+
+
+             // Falling edge - return from function and start a level
+            if(pb_dep_last_pass) {
+                return;
+            }
+        }
+
+        // Handle long depress
+        if (pb_dep && frame_counter_for_reset < FRAMES_DELAY_FOR_HARD_RESET) {
 
             frame_counter_for_reset++;
 
@@ -460,18 +464,14 @@ void start_level_waiting_seq(int next_lvl_idx) {
                 Serial.flush();
                 // Override first byte. Will cause IPL after reset
                 EEPROM.write(EEPROM_ADDR_VERSION_DATE, 0x0);
-                reset_waiting_seq();
+                // Can't use watchdog for reset because of a bootloader bug :(
+                // Instead, wait for user to reset manually
+                waiting_reset_seq();
             }   
         }
 
-        if(is_pb_rising()) {
-          pb_holding = true;
-        }
+        pb_dep_last_pass = pb_dep;
 
-        if(is_pb_falling()) {
-            pb_holding = false;
-            return;
-        }
 
         if(flash_counter < FRAMES_PER_FLASHING_CHANGE) {
             flash_counter++;
@@ -494,6 +494,31 @@ void start_level_waiting_seq(int next_lvl_idx) {
 
         delay(FRAME_DELAY_MS);
     }
+}
+
+/*
+ * This sequence is played when player completes the level successfully
+ */
+void victory_seq(int cursor_loc)
+{
+    g_strip.clear();
+
+    request_vibration(VICTORY_SEQ_DURATION_MS);
+
+    for(uint16_t i=0; i < g_strip.numPixels(); i++) {
+
+        g_strip.setPixelColor( (i +  cursor_loc ) % g_strip.numPixels(), COLOR_VICTORY_SEQ_BG);
+
+        //for(uint16_t j=0; j <= i; j++) {
+        //    g_strip.setPixelColor( (j +  cursor_loc ) % g_strip.numPixels(), COLOR_VICTORY_SEQ_BG);
+        //}
+
+        g_strip.show();
+
+        delay(VICTORY_SEQ_DURATION_MS / g_strip.numPixels());
+    }
+    
+
 }
 
 /*
@@ -540,50 +565,6 @@ void failure_seq(int cursor_loc, int* target_loc) {
     }
 
     delay(1.5 * ONE_SECOND_MS);
-}
-
-/**
- * Returns true is pb is rising (went from off to on). Updates
- * last pass variable
- */
-boolean is_pb_rising() {
-
-    int pb_this_pass = digitalRead(PUSHBUTTON_PIN);
-
-    if(pb_this_pass == LOW && g_pb_last_pass == HIGH) {
-        g_pb_last_pass = LOW;
-
-        Serial.println("PB is raising...");
-        return true;
-    }
-
-    g_pb_last_pass = pb_this_pass;
-    return false;
-}
-
-/**
- * Returns true is pb is falling (went from on to off). Updates
- * last pass variable
- */
-boolean is_pb_falling() {
-
-    int pb_this_pass = digitalRead(PUSHBUTTON_PIN);
-
-    if(pb_this_pass == HIGH && g_pb_last_pass_falling == LOW) {
-        g_pb_last_pass_falling = HIGH;
-
-        Serial.println("PB is falling...");
-        return true;
-    }
-
-    g_pb_last_pass_falling = pb_this_pass;
-    return false;
-}
-
-
-void init_pb_last_pass() {
-    g_pb_last_pass = digitalRead(PUSHBUTTON_PIN);
-    g_pb_last_pass_falling =  digitalRead(PUSHBUTTON_PIN);
 }
 
 

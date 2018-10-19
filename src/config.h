@@ -85,9 +85,18 @@ enum CursorSpeed {
 
 typedef struct {
     CursorSpeed cursor_speed; 
-    int num_targets;
+    byte num_targets;
     CorrelationColor corr_color;
-    TargetBehaviour target_behaviour;  
+    TargetBehaviour target_behaviour;
+
+    // The following are chance settings for random events.
+    // The chance is the probability of event happening at each second interval. 
+    // value of 0 means the event will never happen.
+    // value of 255 means the event will happen every second.
+    byte change_direction_chance;
+    byte swap_cursor_stationary_chance;  
+    byte shock_chance; 
+    byte flash_chance;
     
 } LevelConfig;
 
@@ -129,6 +138,8 @@ typedef struct {
 #define FRAMES_PER_LEVEL      (SECONDS_PER_LEVEL * FPS) 
 #define VIB_PULSE_DUR_MS      200                      /// Typical duration of a vibration pulse
 
+#define VICTORY_SEQ_DURATION_MS 1500
+
 #define FLSH_WAIT_DUTY_CYCLE_MS      (1*ONE_SECOND_MS) /// time between flashes of the next level led in the waiting sequence
 #define FLSH_GM_OVR_DUTY_CYCLE_MS    (1*ONE_SECOND_MS) /// time between flashes of the game over sequence
 #define TIME_BETWEEN_TARGET_UPDT_MS  (ONE_SECOND_MS + HALF_SECOND_MS) /// time between targets' locations updates
@@ -149,6 +160,8 @@ const uint32_t COLOR_CURSOR = Adafruit_NeoPixel::Color(255, 0, 0);
 const uint32_t COLOR_BG     = Adafruit_NeoPixel::Color(30, 30, 30);
 
 const uint32_t COLOR_LEVEL_SELECT = Adafruit_NeoPixel::Color(0, 200, 10);
+
+const uint32_t COLOR_VICTORY_SEQ_BG     = Adafruit_NeoPixel::Color(80, 80, 80);
 
 /* *************************************************
  * Data and configuration
