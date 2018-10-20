@@ -203,6 +203,26 @@ boolean is_initial_program_load()
     return is_ipl;
 }
 
+
+/*
+ * Poisson cumulative distribution function: F(x) =  1 - e ^ (-lambda*x)
+ * What is the probability of an event happening in the next x milliseconds
+ * for a poisson process with an avarage rate of lambda events per 20 seconds
+ */
+float poisson_cdf(int x_ms, byte lambda_20_sec)
+{
+    // Convert to common units
+    float lambda_ms =  ((float)lambda_20_sec) / (20.0 * 1000.0);
+
+    return 1.0 - pow(EULER, -1.0 * lambda_ms * x_ms );
+}
+
+int mod(int a, int b) {
+  int c = a % b;
+  return (c < 0) ? c + b : c;
+}
+
+
 /*
  * Plays the level logic
  *
@@ -216,9 +236,19 @@ boolean play_level(int lvl_idx) {
     int bg_size = g_strip.numPixels();
 
     int cursor_loc = 0;
+    int cursor_direction = 1; // 1 - CW, -1 - CCW
+  
+    // tue - cursor moving, 
+    // false cursor stationary everything else moving in opposite direction
+    bool cursor_is_moving = true;                                 
+    int bg_offset = 0; // updated when cursor is stationary
+
     int cursor_counter = 0; // count frames until cursor needs to move to next position
     const int cursor_frames_per_move = FPS / (int)CONFIG[lvl_idx].cursor_speed;
     const int target_frames_per_move = TIME_BETWEEN_TARGET_UPDT_MS / FRAME_DELAY_MS;
+
+    const int flash_duration_ms = 700;
+
     int prev_target_mv_dir = -1;
 
     int target_loc[MAX_TARGETS];
@@ -230,7 +260,7 @@ boolean play_level(int lvl_idx) {
         target_loc[i] = INVALID_LOCATION; // target does not exist
 
         if(i < CONFIG[lvl_idx].num_targets) {
-            target_loc[i] = (target_loc_base + i * (NUM_LOCATIONS / CONFIG[lvl_idx].num_targets)) % NUM_LOCATIONS;
+            target_loc[i] = mod((target_loc_base + i * (NUM_LOCATIONS / CONFIG[lvl_idx].num_targets)),  NUM_LOCATIONS);
         }
     }
 
@@ -270,11 +300,38 @@ boolean play_level(int lvl_idx) {
         /* background indicates how many seconds left before the end of level */
         bg_size = ROUND_UP_DIVISION((FRAMES_PER_LEVEL - i), FPS);
 
-        if(cursor_counter != cursor_frames_per_move) {
+        /* update cursor location */
+        if (cursor_counter != cursor_frames_per_move) {
             cursor_counter ++;
         } else {
+            
+            /* reset counter for next time */
             cursor_counter = 0;
-            cursor_loc = (cursor_loc + 1) % NUM_LOCATIONS;
+
+            /* determine cursor movement direction */
+            int ms_between_movements = (1.0 / (float)CONFIG[lvl_idx].cursor_speed) * 1000.0;
+
+            float change_direction_chance = 
+                poisson_cdf(ms_between_movements, CONFIG[lvl_idx].change_direction_rate);
+
+            if ((float)random(0, 1000) / 1000.0 < change_direction_chance ) {
+                cursor_direction = (-1) * cursor_direction;
+            }     
+
+            // determine if to move switch vetween moving and stationary cursor
+            float swap_cursor_stationary_chance = 
+                poisson_cdf(ms_between_movements, CONFIG[lvl_idx].swap_cursor_stationary_rate);
+            
+            if ((float)random(0, 1000) / 1000.0 < swap_cursor_stationary_chance ) {
+                cursor_is_moving = !cursor_is_moving;
+            }    
+
+            if (cursor_is_moving) {
+                /* move cursor */
+                cursor_loc = mod((cursor_loc + cursor_direction) , NUM_LOCATIONS);
+            } else {
+                bg_offset = bg_offset - cursor_direction; // notice: bg is moving in opposite direction
+            }
         }
 
 
@@ -291,7 +348,7 @@ boolean play_level(int lvl_idx) {
                 case RANDOM_WALK:
                     for(int i = 0; i < MAX_TARGETS; i++) {
                         if(target_loc[i] != INVALID_LOCATION) {
-                            target_loc[i] = (target_loc[i] + NUM_LOCATIONS + random(3) - 2) % NUM_LOCATIONS;
+                            target_loc[i] = mod ((target_loc[i] + NUM_LOCATIONS + random(3) - 2), NUM_LOCATIONS);
                         }
                     }
                     move_direction = 0;
@@ -315,7 +372,7 @@ boolean play_level(int lvl_idx) {
             // This handles everything except random walk
             for(int i = 0; i < MAX_TARGETS; i++) {
                 if(target_loc[i] != INVALID_LOCATION) {
-                    target_loc[i] = (target_loc[i] + NUM_LOCATIONS + move_direction) % NUM_LOCATIONS;
+                    target_loc[i] = mod((target_loc[i] + NUM_LOCATIONS + move_direction), NUM_LOCATIONS);
                 }
             }
 
@@ -326,7 +383,7 @@ boolean play_level(int lvl_idx) {
         g_strip.clear();
 
         for(int j=0; j < bg_size; j++) {
-            g_strip.setPixelColor(j, COLOR_BG);
+            g_strip.setPixelColor(mod((bg_offset + j), NUM_LOCATIONS), COLOR_BG);
         }
 
         g_strip.setPixelColor(cursor_loc, COLOR_CURSOR);
@@ -334,7 +391,7 @@ boolean play_level(int lvl_idx) {
         for(int i = 0; i < MAX_TARGETS; i++) {
             if(target_loc[i] != INVALID_LOCATION &&
                !(target_loc[i] == cursor_loc && CONFIG[lvl_idx].corr_color == CURSOR)) {
-                 g_strip.setPixelColor(target_loc[i], COLOR_TARGET);
+                 g_strip.setPixelColor(mod((bg_offset + target_loc[i]), NUM_LOCATIONS), COLOR_TARGET);
             }
         }
 

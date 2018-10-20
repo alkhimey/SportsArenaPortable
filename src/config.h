@@ -89,14 +89,14 @@ typedef struct {
     CorrelationColor corr_color;
     TargetBehaviour target_behaviour;
 
-    // The following are chance settings for random events.
-    // The chance is the probability of event happening at each second interval. 
-    // value of 0 means the event will never happen.
-    // value of 255 means the event will happen every second.
-    byte change_direction_chance;
-    byte swap_cursor_stationary_chance;  
-    byte shock_chance; 
-    byte flash_chance;
+    // The following are frequency settings for random events.
+    // The model for each random event is a poisson distribution.
+    // These numbers represents the rate of events occuring per 20 seconds.
+    // Possible values are 0..255
+    byte change_direction_rate;
+    byte swap_cursor_stationary_rate;  
+    byte shock_rate; 
+    byte flash_rate;
     
 } LevelConfig;
 
@@ -168,22 +168,26 @@ const uint32_t COLOR_VICTORY_SEQ_BG     = Adafruit_NeoPixel::Color(80, 80, 80);
  * *************************************************/
 
 const LevelConfig CONFIG[] = {
-    {SPEED_1, 3, CURSOR, NONE},   
-    {SPEED_1, 2, CURSOR, NONE},   
-    {SPEED_1, 1, CURSOR, NONE},   
-    {SPEED_1, 3, CURSOR, SAME_DIRECTION}, 
-    {SPEED_2, 3, CURSOR, NONE}, 
-    {SPEED_2, 3, CURSOR, SAME_DIRECTION}, 
-    {SPEED_2, 2, CURSOR, SAME_DIRECTION}, 
-    {SPEED_3, 2, CURSOR, SAME_DIRECTION},
-    {SPEED_2, 2, CURSOR, OPPOSING_DIRECTION}, 
-    {SPEED_2, 1, TARGET, OPPOSING_DIRECTION},
-    {SPEED_3, 2, TARGET, SHAKE},
-    {SPEED_3, 3, TARGET, RANDOM_WALK},
-    {SPEED_3, 2, TARGET, RANDOM_WALK},
-    {SPEED_3, 1, TARGET, SAME_DIRECTION},
-    {SPEED_3, 1, TARGET, SHAKE},
-    {SPEED_3, 1, TARGET, RANDOM_WALK},     
+
+// cursor_speed    corr_color    change_direction_rate             shock_rate
+//         num_targets   target_behaviour   swap_cursor_stationary_rate   flash_rate
+// NOTICE: Rates represents number of events per 20 seconds
+    {SPEED_1, 3, CURSOR, NONE,               0, 4, 0, 0},   
+    {SPEED_1, 2, CURSOR, NONE,               0, 0, 0, 0},   
+    {SPEED_1, 1, CURSOR, NONE,               0, 0, 0, 0},   
+    {SPEED_1, 3, CURSOR, SAME_DIRECTION,     0, 0, 0, 0}, 
+    {SPEED_2, 3, CURSOR, NONE,               0, 0, 0, 0}, 
+    {SPEED_2, 3, CURSOR, SAME_DIRECTION,     0, 0, 0, 0}, 
+    {SPEED_2, 2, CURSOR, SAME_DIRECTION,     0, 0, 0, 0}, 
+    {SPEED_3, 2, CURSOR, SAME_DIRECTION,     0, 0, 0, 0},
+    {SPEED_2, 2, CURSOR, OPPOSING_DIRECTION, 0, 0, 0, 0}, 
+    {SPEED_2, 1, TARGET, OPPOSING_DIRECTION, 0, 0, 0, 0},
+    {SPEED_3, 2, TARGET, SHAKE,              0, 0, 0, 0},
+    {SPEED_3, 3, TARGET, RANDOM_WALK,        0, 0, 0, 0},
+    {SPEED_3, 2, TARGET, RANDOM_WALK,        0, 0, 0, 0},
+    {SPEED_3, 1, TARGET, SAME_DIRECTION,     0, 0, 0, 0},
+    {SPEED_3, 1, TARGET, SHAKE,              0, 0, 0, 0},
+    {SPEED_3, 1, TARGET, RANDOM_WALK,        0, 0, 0, 0},     
 };
 
 const int TOTAL_LEVELS = sizeof(CONFIG) / sizeof(CONFIG[0]);
