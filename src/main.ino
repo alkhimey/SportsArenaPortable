@@ -248,6 +248,7 @@ boolean play_level(int lvl_idx) {
     const int target_frames_per_move = TIME_BETWEEN_TARGET_UPDT_MS / FRAME_DELAY_MS;
 
     const int flash_duration_ms = 700;
+    int flash_timer = 0;
 
     int prev_target_mv_dir = -1;
 
@@ -318,7 +319,7 @@ boolean play_level(int lvl_idx) {
                 cursor_direction = (-1) * cursor_direction;
             }     
 
-            // determine if to move switch vetween moving and stationary cursor
+            /* determine if to move switch vetween moving and stationary cursor */
             float swap_cursor_stationary_chance = 
                 poisson_cdf(ms_between_movements, CONFIG[lvl_idx].swap_cursor_stationary_rate);
             
@@ -378,6 +379,28 @@ boolean play_level(int lvl_idx) {
 
         }
 
+        /* determine if shock is required */
+        float shock_chance = 
+                poisson_cdf(FRAME_DELAY_MS, CONFIG[lvl_idx].shock_rate);
+
+        if ((float)random(0, 1000) / 1000.0 < shock_chance ) {
+            request_vibration(VIB_PULSE_DUR_MS); // use standard duration
+        }
+
+
+        /* determine if flash behaviour is required */
+        
+        if (flash_timer > 0) {
+            flash_timer -= FRAME_DELAY_MS;
+        }
+        
+        float flash_chance = 
+                poisson_cdf(FRAME_DELAY_MS, CONFIG[lvl_idx].flash_rate);
+
+        if ((float)random(0, 1000) / 1000.0 < flash_chance ) {
+            flash_timer = flash_duration_ms;
+        }
+
         /* draw everything */
 
         g_strip.clear();
@@ -386,17 +409,43 @@ boolean play_level(int lvl_idx) {
             g_strip.setPixelColor(mod((bg_offset + j), NUM_LOCATIONS), COLOR_BG);
         }
 
-        g_strip.setPixelColor(cursor_loc, COLOR_CURSOR);
+        if (CONFIG[lvl_idx].cursor_color_behaviour != SAME) {
+            g_strip.setPixelColor(cursor_loc, COLOR_CURSOR);
+        } else {
+            g_strip.setPixelColor(cursor_loc, COLOR_TARGET);
+        }
 
         for(int i = 0; i < MAX_TARGETS; i++) {
-            if(target_loc[i] != INVALID_LOCATION &&
-               !(target_loc[i] == cursor_loc && CONFIG[lvl_idx].corr_color == CURSOR)) {
-                 g_strip.setPixelColor(mod((bg_offset + target_loc[i]), NUM_LOCATIONS), COLOR_TARGET);
+
+            if(target_loc[i] != INVALID_LOCATION)
+            {
+                if (target_loc[i] == cursor_loc &&
+                    CONFIG[lvl_idx].cursor_color_behaviour == SEPARATE) {
+                    
+                    g_strip.setPixelColor(mod((bg_offset + target_loc[i]), NUM_LOCATIONS), COLOR_CURSOR);
+                } else {
+                    g_strip.setPixelColor(mod((bg_offset + target_loc[i]), NUM_LOCATIONS), COLOR_TARGET);
+                }
             }
         }
 
-        g_strip.show();
+        if (flash_timer <= 0) {
+            g_strip.show();
+        } else {
 
+            uint8_t normal_brightness =  g_strip.getBrightness();
+            
+            // Scale 0..flash_duration to 0..1000
+            double scaled_timer = ((double)flash_timer / (double)flash_duration_ms) * 1000; 
+            // Calculate log value 0..3
+            double scaled_brightness = log10(scaled_timer);
+            // scale 0..3 to normal_brightness..255
+            uint8_t calculated_brightness = normal_brightness + (uint8_t)((scaled_brightness / 3.0)*(255.0 - normal_brightness));
+
+            g_strip.setBrightness(calculated_brightness);
+            g_strip.show();
+            g_strip.setBrightness(normal_brightness);
+        }
 
         delay(FRAME_DELAY_MS);
     }
@@ -435,6 +484,22 @@ void waiting_reset_seq() {
     while(1) {}
 }
 
+/* 
+ * Set gamma corrected color of the strip.
+ * 
+ * Subjectively - I don't see any difference
+ */
+void setGammaColor(uint16_t n, uint8_t r, uint8_t g, uint8_t b)
+{
+
+    g_strip.setPixelColor(
+        n,
+        g_strip.gamma8(r),
+        g_strip.gamma8(g),
+        g_strip.gamma8(b));
+}
+
+
 /*
  * Ready, set go sequence
  *
@@ -442,29 +507,28 @@ void waiting_reset_seq() {
  *
  */
 void ready_set_go_seq() {
-
     for(int i=0; i<3; i++) {
         request_vibration(VIB_PULSE_DUR_MS);
 
         /* green */
         g_strip.clear();
-        g_strip.setPixelColor(0,                 g_strip.Color(0, 255, 0));
-        g_strip.setPixelColor(NUM_LOCATIONS - 1, g_strip.Color(0, 255, 0));
+        setGammaColor(0,                 0, 255, 0);
+        setGammaColor(NUM_LOCATIONS - 1, 0, 255, 0);
 
         if(i<2) {
             /* yellow */
-            g_strip.setPixelColor(1,                 g_strip.Color(255, 255, 0));
-            g_strip.setPixelColor(NUM_LOCATIONS - 2, g_strip.Color(255, 255, 0));
-            g_strip.setPixelColor(2,                 g_strip.Color(255, 255, 0));
-            g_strip.setPixelColor(NUM_LOCATIONS - 3, g_strip.Color(255, 255, 0));
+            setGammaColor(1,                 255, 255, 0);
+            setGammaColor(NUM_LOCATIONS - 2, 255, 255, 0);
+            setGammaColor(2,                 255, 255, 0);
+            setGammaColor(NUM_LOCATIONS - 3, 255, 255, 0);
         }
 
         if(i < 1) {
             /* red */
-            g_strip.setPixelColor(3,                 g_strip.Color(255, 0, 0));
-            g_strip.setPixelColor(NUM_LOCATIONS - 4, g_strip.Color(255, 0, 0));
-            g_strip.setPixelColor(4,                 g_strip.Color(255, 0, 0));
-            g_strip.setPixelColor(NUM_LOCATIONS - 5, g_strip.Color(255, 0, 0));
+            setGammaColor(3,                 255, 0, 0);
+            setGammaColor(NUM_LOCATIONS - 4, 255, 0, 0);
+            setGammaColor(4,                 255, 0, 0);
+            setGammaColor(NUM_LOCATIONS - 5, 255, 0, 0);
         }
 
         g_strip.show();

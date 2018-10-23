@@ -61,9 +61,10 @@
  * Types
  * *************************************************/
 
-enum CorrelationColor {
-    TARGET,
-    CURSOR  
+enum CursorColorBehaviour {
+    SEPARATE,
+    SAME_WHEN_CORRELATED,
+    SAME  
 };
 
 enum TargetBehaviour {
@@ -86,7 +87,7 @@ enum CursorSpeed {
 typedef struct {
     CursorSpeed cursor_speed; 
     byte num_targets;
-    CorrelationColor corr_color;
+    CursorColorBehaviour cursor_color_behaviour;
     TargetBehaviour target_behaviour;
 
     // The following are frequency settings for random events.
@@ -172,22 +173,22 @@ const LevelConfig CONFIG[] = {
 // cursor_speed    corr_color    change_direction_rate             shock_rate
 //         num_targets   target_behaviour   swap_cursor_stationary_rate   flash_rate
 // NOTICE: Rates represents number of events per 20 seconds
-    {SPEED_1, 3, CURSOR, NONE,               0, 4, 0, 0},   
-    {SPEED_1, 2, CURSOR, NONE,               0, 0, 0, 0},   
-    {SPEED_1, 1, CURSOR, NONE,               0, 0, 0, 0},   
-    {SPEED_1, 3, CURSOR, SAME_DIRECTION,     0, 0, 0, 0}, 
-    {SPEED_2, 3, CURSOR, NONE,               0, 0, 0, 0}, 
-    {SPEED_2, 3, CURSOR, SAME_DIRECTION,     0, 0, 0, 0}, 
-    {SPEED_2, 2, CURSOR, SAME_DIRECTION,     0, 0, 0, 0}, 
-    {SPEED_3, 2, CURSOR, SAME_DIRECTION,     0, 0, 0, 0},
-    {SPEED_2, 2, CURSOR, OPPOSING_DIRECTION, 0, 0, 0, 0}, 
-    {SPEED_2, 1, TARGET, OPPOSING_DIRECTION, 0, 0, 0, 0},
-    {SPEED_3, 2, TARGET, SHAKE,              0, 0, 0, 0},
-    {SPEED_3, 3, TARGET, RANDOM_WALK,        0, 0, 0, 0},
-    {SPEED_3, 2, TARGET, RANDOM_WALK,        0, 0, 0, 0},
-    {SPEED_3, 1, TARGET, SAME_DIRECTION,     0, 0, 0, 0},
-    {SPEED_3, 1, TARGET, SHAKE,              0, 0, 0, 0},
-    {SPEED_3, 1, TARGET, RANDOM_WALK,        0, 0, 0, 0},     
+    {SPEED_1, 3, SAME, NONE,               0, 0, 4, 4},   
+    {SPEED_1, 2, SAME_WHEN_CORRELATED, NONE,               0, 0, 0, 0},   
+    {SPEED_1, 1, SEPARATE, NONE,               0, 0, 0, 0},   
+    {SPEED_1, 3, SEPARATE, SAME_DIRECTION,     0, 0, 0, 0}, 
+    {SPEED_2, 3, SEPARATE, NONE,               0, 0, 0, 0}, 
+    {SPEED_2, 3, SEPARATE, SAME_DIRECTION,     0, 0, 0, 0}, 
+    {SPEED_2, 2, SEPARATE, SAME_DIRECTION,     0, 0, 0, 0}, 
+    {SPEED_3, 2, SEPARATE, SAME_DIRECTION,     0, 0, 0, 0},
+    {SPEED_2, 2, SEPARATE, OPPOSING_DIRECTION, 0, 0, 0, 0}, 
+    {SPEED_2, 1, SEPARATE, OPPOSING_DIRECTION, 0, 0, 0, 0},
+    {SPEED_3, 2, SEPARATE, SHAKE,              0, 0, 0, 0},
+    {SPEED_3, 3, SEPARATE, RANDOM_WALK,        0, 0, 0, 0},
+    {SPEED_3, 2, SEPARATE, RANDOM_WALK,        0, 0, 0, 0},
+    {SPEED_3, 1, SEPARATE, SAME_DIRECTION,     0, 0, 0, 0},
+    {SPEED_3, 1, SEPARATE, SHAKE,              0, 0, 0, 0},
+    {SPEED_3, 1, SEPARATE, RANDOM_WALK,        0, 0, 0, 0},     
 };
 
 const int TOTAL_LEVELS = sizeof(CONFIG) / sizeof(CONFIG[0]);
