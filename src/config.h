@@ -111,7 +111,7 @@ typedef struct {
     const int* notes;
     const int* durations;    // 1/x of the beat duration
     unsigned int note_duration_cycles; /// tempo
-    bool repeat;
+    bool repeat; // repeat after melody is finished
 } Melody;
     
 
@@ -174,8 +174,8 @@ const LevelConfig CONFIG[] = {
 //         num_targets   target_behaviour   swap_cursor_stationary_rate   flash_rate
 // NOTICE: Rates represents number of events per 20 seconds
     {SPEED_1, 3, SAME, NONE,               0, 0, 4, 4},   
-    {SPEED_1, 2, SAME_WHEN_CORRELATED, NONE,               0, 0, 0, 0},   
-    {SPEED_1, 1, SEPARATE, NONE,               0, 0, 0, 0},   
+    {SPEED_2, 2, SAME_WHEN_CORRELATED, NONE,               0, 0, 0, 0},   
+    {SPEED_3, 1, SEPARATE, NONE,               0, 0, 0, 0},   
     {SPEED_1, 3, SEPARATE, SAME_DIRECTION,     0, 0, 0, 0}, 
     {SPEED_2, 3, SEPARATE, NONE,               0, 0, 0, 0}, 
     {SPEED_2, 3, SEPARATE, SAME_DIRECTION,     0, 0, 0, 0}, 
@@ -230,5 +230,11 @@ const int bond_durations[] = {   8,16,16,8,4,8,8,8,
   4,8,4,8,3 };
   
 const Melody bond_melody = { bond_notes, bond_durations, 50, REPEAT  }; // 120 BPM = 100 cycles pre beat (20hz)
+
+
+
+const PROGMEM int test_notes2[] =      { NOTE_A2, NOTE_B2, NOTE_C2, NOTE_D2, PAUSE, NOTE_E7, NOTE_C2, NOTE_D2, NOTE_E2, HALT };
+const PROGMEM int test_durations2[]  = { 8,       8,       8,       8,       16,     4,       4,       4,       4,       0     }; 
+const Melody test_melody2 = { test_notes2, test_durations2, 50, REPEAT  }; // 120 BPM = 100 cycles pre beat (20hz)
 
 #endif

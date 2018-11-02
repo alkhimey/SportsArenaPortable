@@ -133,9 +133,9 @@ void setup() {
     TCCR1A = 0;// set entire TCCR1A register to 0
     TCCR1B = 0;// same for TCCR1B
     TCNT1  = 0;//initialize counter value to 0
-    OCR1A = 781; // approximately 20Hz
+    OCR1A = 12499; // = 16000000 / (64 * 20) - 1 (must be <65536)
     TCCR1B |= (1 << WGM12);// turn on CTC mode
-    TCCR1B |= (1 << CS12) | (1 << CS10);  // 1024 presxaler
+    TCCR1B |= (0 << CS12) | (1 << CS11) | (1 << CS10); //  64 prescaler
     TIMSK1 |= (1 << OCIE1A); // enable timer compare interrupt
     sei();//allow interrupts
 
@@ -270,6 +270,8 @@ boolean play_level(int lvl_idx) {
 
     /* Play the level for a predefined duration */
     for(int i = 0; i < FRAMES_PER_LEVEL; i++) {
+
+        unsigned long start_frame_micros = micros();
 
         bool pb_dep = digitalRead(PUSHBUTTON_PIN) == LOW; 
 
@@ -447,8 +449,21 @@ boolean play_level(int lvl_idx) {
             g_strip.setBrightness(normal_brightness);
         }
 
-        delay(FRAME_DELAY_MS);
+        /* Make sure every frame is exactly FRAME_DELAY_MS time */
+        double spent_time_ms = (float)(micros() - start_frame_micros) / 1000.0;
+
+        if (spent_time_ms > 0.0 &&
+            spent_time_ms < (float)(FRAME_DELAY_MS))
+        {
+            delay(FRAME_DELAY_MS - (unsigned long)(spent_time_ms));
+        } else {
+            Serial.print("Frame overrun by ");
+            Serial.print((unsigned long)spent_time_ms - FRAME_DELAY_MS);
+            Serial.println("ms");
+        }
     }
+
+    
 
     /* timeout */
     failure_seq(cursor_loc, target_loc);
@@ -553,7 +568,7 @@ void start_level_waiting_seq(int next_lvl_idx) {
 
 
     // TODO: Artium rm debug -or- waiting melody
-    // request_melody(&bond_melody);
+    request_melody(&test_melody2);
 
 
     bool pb_dep_last_pass = digitalRead(PUSHBUTTON_PIN) == LOW; // LOW mean PB pressed
@@ -723,6 +738,7 @@ ISR(TIMER1_COMPA_vect){
         int dur_div = *(g_curr_melody_ptr->durations + g_curr_note_pos);
 
         if(note == HALT) {
+            noTone(BUZZER_PIN);
             if (g_curr_melody_ptr->repeat) {
                 g_curr_note_pos = 0; // implicit pause of one cycle before melody restarts
             }
@@ -734,7 +750,9 @@ ISR(TIMER1_COMPA_vect){
             // number of cycles to wait untill new note can be played. includes the silence between notes
             g_sound_timer = (g_curr_melody_ptr->note_duration_cycles * NOTE_DURATION_FACTOR_M10) / (FACTOR_M10 * dur_div);
 
-            if (note != PAUSE) {
+            if (note == PAUSE) {
+                noTone(BUZZER_PIN);
+            } else {
                 tone(BUZZER_PIN, note, tone_dur_ms);
             }
             g_curr_note_pos++;
