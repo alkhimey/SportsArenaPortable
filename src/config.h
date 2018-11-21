@@ -109,8 +109,8 @@ enum {
 
 typedef struct {
     const int* notes;
-    const int* durations;    // 1/x of the beat duration
-    unsigned int note_duration_cycles; /// tempo
+    const int* durations;
+    //unsigned int note_duration_cycles; /// tempo
     bool repeat; // repeat after melody is finished
 } Melody;
     
@@ -139,7 +139,7 @@ typedef struct {
 #define FRAMES_PER_LEVEL      (SECONDS_PER_LEVEL * FPS) 
 #define VIB_PULSE_DUR_MS      200                      /// Typical duration of a vibration pulse
 
-#define VICTORY_SEQ_DURATION_MS 1500
+#define VICTORY_SEQ_DURATION_MS 1300
 
 #define FLSH_WAIT_DUTY_CYCLE_MS      (1*ONE_SECOND_MS) /// time between flashes of the next level led in the waiting sequence
 #define FLSH_GM_OVR_DUTY_CYCLE_MS    (1*ONE_SECOND_MS) /// time between flashes of the game over sequence
@@ -198,43 +198,85 @@ const int TOTAL_LEVELS = sizeof(CONFIG) / sizeof(CONFIG[0]);
  * Music related constants
  * *************************************************/
 
-#define NOTE_DURATION_FACTOR_M10   11    // equals 1.2. ie if note duration is X, than the note+pause after note duration is 1.2x
-#define FACTOR_M10                 10
+/** Ready set go */
+const  int rsg_notes1[] =      { NOTE_A5, HALT };
+const  int rsg_durations1[]  = { 10,      0    }; 
 
-int silent_melody_notes[]     = { HALT };
-int silent_melody_durations[] = { 0 }; 
-Melody silent_melody = { silent_melody_notes, silent_melody_durations, 100, false  }; // 120 BPM
+const  int rsg_notes2[] =      { NOTE_A3, HALT };
+const  int rsg_durations2[]  = { 10,      0    }; 
 
-const PROGMEM int test_notes[] =      { NOTE_C4, NOTE_G3, NOTE_G3, NOTE_A3, NOTE_G3, PAUSE, NOTE_B3, NOTE_C4, HALT };
-const PROGMEM int test_durations[]  = { 4,       8,       8,       4,       4,       4,     4,       4,       0    }; 
-const Melody test_melody = { test_notes, test_durations, 50, REPEAT  }; // 120 BPM = 100 cycles pre beat (20hz)
- 
- 
- 
-const int bond_notes[] = { NOTE_E4,NOTE_F4,NOTE_F4,NOTE_F4,NOTE_F4,NOTE_E4,NOTE_E4,NOTE_E4,
-  NOTE_E4,NOTE_G4,NOTE_G4,NOTE_G4,NOTE_G4,NOTE_E4,NOTE_E4,NOTE_E4,
-  NOTE_E4,NOTE_F4,NOTE_F4,NOTE_F4,NOTE_F4,NOTE_E4,NOTE_E4,NOTE_E4,
-  NOTE_E4,NOTE_G4,NOTE_G4,NOTE_G4,NOTE_G4,NOTE_E4,NOTE_E4,NOTE_E4,
-  NOTE_DS5,NOTE_D5,NOTE_B4,NOTE_A4,NOTE_B4,
-  NOTE_E4,NOTE_G4,NOTE_DS5,NOTE_D5,NOTE_G4,NOTE_B4,
-  NOTE_B4,NOTE_FS5,NOTE_F5,NOTE_B4,NOTE_D5,NOTE_AS5,
-  NOTE_A5,NOTE_F5,NOTE_A5,NOTE_DS6,NOTE_D6, HALT };
-  
-const int bond_durations[] = {   8,16,16,8,4,8,8,8,
-  8,16,16,8,4,8,8,8,
-  8,16,16,8,4,8,8,8,
-  8,16,16,8,4,8,8,8,
-  8,2,8,8,1,
-  8,4,8,4,8,8,
-  8,8,4,8,4,8,
-  4,8,4,8,3 };
-  
-const Melody bond_melody = { bond_notes, bond_durations, 50, REPEAT  }; // 120 BPM = 100 cycles pre beat (20hz)
+const  int rsg_notes3[] =      { NOTE_A1, HALT };
+const  int rsg_durations3[]  = { READY_SET_GO_DELAY_MS / TIMER_1_INT_TIME,      0    };   
 
+const Melody ready_set_go_melody[3] = { { rsg_notes1, rsg_durations1, NO_REPEAT },
+                                        { rsg_notes2, rsg_durations2, NO_REPEAT },
+                                        { rsg_notes3, rsg_durations3, NO_REPEAT } };
 
+const int victory_tones[6]       = {NOTE_AS1, NOTE_C2, NOTE_D2, HALT};
+const  int victory_durations[6]  = {4,        4,       4,       0    }; 
+const Melody victory_melody = {victory_tones, victory_durations, NO_REPEAT};
 
-const PROGMEM int test_notes2[] =      { NOTE_A2, NOTE_B2, NOTE_C2, NOTE_D2, PAUSE, NOTE_E7, NOTE_C2, NOTE_D2, NOTE_E2, HALT };
-const PROGMEM int test_durations2[]  = { 8,       8,       8,       8,       16,     4,       4,       4,       4,       0     }; 
-const Melody test_melody2 = { test_notes2, test_durations2, 50, REPEAT  }; // 120 BPM = 100 cycles pre beat (20hz)
+/*
+const int victory_notes[NUM_LOCATIONS/2][2] = {
+    {NOTE_A1, HALT},
+    //{NOTE_AS1, HALT},
+    //{NOTE_B1, HALT},
+    //{NOTE_C2, HALT},
+    {NOTE_CS2, HALT},
+    //{NOTE_D2, HALT},
+    //{NOTE_DS2, HALT},
+    //{NOTE_E2, HALT},
+    {NOTE_F2, HALT},
+    //{NOTE_FS2, HALT}
+    //{NOTE_G2, HALT},
+    //{NOTE_GS2, HALT},
+    {NOTE_A3, HALT},
+    //{NOTE_AS2, HALT},
+    //{NOTE_B2, HALT},
+    //{NOTE_C3, HALT}
+    };
+
+const int victory_durations[NUM_LOCATIONS/2][2] = {
+    //{20, 0},
+    //{20, 0},
+    //{20, 0},
+    //{20, 0},
+    //{20, 0},
+    //{20, 0},
+    //{20, 0},
+    //{20, 0},
+    //{20, 0},
+    //{10, 0},
+    //{10, 0},
+    //{10, 0},
+    {5, 0},
+    {5, 0},
+    {5, 0},
+    {5, 0}};
+
+const Melody victory_melody[NUM_LOCATIONS] = {
+    {victory_notes[0], victory_durations[0], NO_REPEAT},
+    {victory_notes[0], victory_durations[0], NO_REPEAT},
+    {victory_notes[0], victory_durations[0], NO_REPEAT},
+    {victory_notes[0], victory_durations[0], NO_REPEAT},
+    {victory_notes[0], victory_durations[0], NO_REPEAT},
+    {victory_notes[0], victory_durations[0], NO_REPEAT},
+    {victory_notes[0], victory_durations[0], NO_REPEAT},
+    {victory_notes[0], victory_durations[0], NO_REPEAT},
+    {victory_notes[0], victory_durations[0], NO_REPEAT},
+    {victory_notes[0], victory_durations[0], NO_REPEAT},
+    {victory_notes[0], victory_durations[0], NO_REPEAT},
+    {victory_notes[0], victory_durations[0], NO_REPEAT},
+    {victory_notes[0], victory_durations[0], NO_REPEAT},
+    {victory_notes[0], victory_durations[0], NO_REPEAT},
+    {victory_notes[0], victory_durations[0], NO_REPEAT},
+    {victory_notes[0], victory_durations[0], NO_REPEAT},
+};*/
+
+/*
+const int test_notes2[] = {NOTE_A1, NOTE_A2, NOTE_A3, NOTE_A4, NOTE_A5, NOTE_A6, NOTE_A7, HALT};
+const  int test_durations2[]  = { 10,      10,      10,      10,      10,      10,      10,      0     }; 
+const Melody test_melody2 = { test_notes2, test_durations2, REPEAT  };
+*/
 
 #endif

@@ -120,7 +120,7 @@ void setup() {
 
     /* Setup sound */
     g_curr_melody_ptr = NULL;
-    g_curr_note_pos  = 0;;
+    g_curr_note_pos  = 0;
     g_sound_timer = 0;
 
     /* setup vibration */
@@ -523,7 +523,9 @@ void setGammaColor(uint16_t n, uint8_t r, uint8_t g, uint8_t b)
  */
 void ready_set_go_seq() {
     for(int i=0; i<3; i++) {
-        request_vibration(VIB_PULSE_DUR_MS);
+        //request_vibration(VIB_PULSE_DUR_MS);
+
+        request_melody(&(ready_set_go_melody[i]));
 
         /* green */
         g_strip.clear();
@@ -550,6 +552,8 @@ void ready_set_go_seq() {
 
         delay(READY_SET_GO_DELAY_MS);
     }
+
+    stop_melody();
 }
 
 
@@ -568,7 +572,8 @@ void start_level_waiting_seq(int next_lvl_idx) {
 
 
     // TODO: Artium rm debug -or- waiting melody
-    request_melody(&test_melody2);
+    
+    //request_melody(&test_melody2);
 
 
     bool pb_dep_last_pass = digitalRead(PUSHBUTTON_PIN) == LOW; // LOW mean PB pressed
@@ -639,22 +644,25 @@ void victory_seq(int cursor_loc)
 {
     g_strip.clear();
 
-    request_vibration(VICTORY_SEQ_DURATION_MS);
+    request_melody(&(victory_melody));
+
+    unsigned int durations = 0;
+    for( int unsigned i=0; i < sizeof(victory_durations) / sizeof(victory_durations[0]); i++) {
+        durations += victory_durations[i];
+    }
+
+    delay((durations + 1) * TIMER_1_INT_TIME);
+
+    //request_vibration(VICTORY_SEQ_DURATION_MS);
 
     for(uint16_t i=0; i < g_strip.numPixels(); i++) {
 
         g_strip.setPixelColor( (i +  cursor_loc ) % g_strip.numPixels(), COLOR_VICTORY_SEQ_BG);
 
-        //for(uint16_t j=0; j <= i; j++) {
-        //    g_strip.setPixelColor( (j +  cursor_loc ) % g_strip.numPixels(), COLOR_VICTORY_SEQ_BG);
-        //}
-
         g_strip.show();
 
         delay(VICTORY_SEQ_DURATION_MS / g_strip.numPixels());
     }
-    
-
 }
 
 /*
@@ -709,14 +717,15 @@ void request_vibration(int duration_ms) {
 }
 
 void request_melody(const Melody* melody_ptr) {
-    noTone(BUZZER_PIN);
+    stop_melody();
     g_curr_melody_ptr = melody_ptr;
-    g_curr_note_pos = 0;
-    g_sound_timer = 0;
 }
 
 void stop_melody() {
-   request_melody(&silent_melody);
+    noTone(BUZZER_PIN);
+    g_curr_melody_ptr = NULL;
+    g_sound_timer = 0;
+    g_curr_note_pos = 0;
 }
 
 /**
@@ -730,32 +739,32 @@ ISR(TIMER1_COMPA_vect){
         digitalWrite(VIBRATION_PIN, LOW);
     }
 
-    if(g_sound_timer > 0) {
-        g_sound_timer--;
-    } else {
+    if (g_curr_melody_ptr != NULL) {
 
-        int note = *(g_curr_melody_ptr->notes + g_curr_note_pos);
-        int dur_div = *(g_curr_melody_ptr->durations + g_curr_note_pos);
-
-        if(note == HALT) {
-            noTone(BUZZER_PIN);
-            if (g_curr_melody_ptr->repeat) {
-                g_curr_note_pos = 0; // implicit pause of one cycle before melody restarts
-            }
+        if(g_sound_timer > 0) {
+            g_sound_timer--;
         } else {
 
-            // tone duration in ms excluding the silence time between notes
-            int tone_dur_ms = (g_curr_melody_ptr->note_duration_cycles * TIMER_1_INT_TIME) / dur_div;
+            int note = g_curr_melody_ptr->notes[g_curr_note_pos];
 
-            // number of cycles to wait untill new note can be played. includes the silence between notes
-            g_sound_timer = (g_curr_melody_ptr->note_duration_cycles * NOTE_DURATION_FACTOR_M10) / (FACTOR_M10 * dur_div);
-
-            if (note == PAUSE) {
-                noTone(BUZZER_PIN);
+            if(note == HALT) {
+                if (g_curr_melody_ptr->repeat == false) {
+                    stop_melody();
+                } else {
+                    noTone(BUZZER_PIN);
+                    g_curr_note_pos = 0;
+                }
             } else {
-                tone(BUZZER_PIN, note, tone_dur_ms);
+                // setup timer to number of cycles of current note
+                g_sound_timer = g_curr_melody_ptr->durations[g_curr_note_pos];
+
+                if (note == PAUSE) {
+                    noTone(BUZZER_PIN);
+                } else {
+                    tone(BUZZER_PIN, note);
+                }
+                g_curr_note_pos++;
             }
-            g_curr_note_pos++;
         }
     }
 }
