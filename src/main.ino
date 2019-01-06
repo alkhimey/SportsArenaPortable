@@ -42,10 +42,10 @@
  * Time limit for each level is 16 seconds. The white ring, the "background",
  * indicates how much time is left.
  *
- * NeoPixel display, level logic and animation playing is preformed from the main loop.
+ * WS2812 display, level logic and animation playing is preformed from the main loop.
  * Animations are sequential, with delay function. Level recalculation performed inside a 20hz loop.
  * Sound and vibration is performed via a timer1 interrupt. The interrupt is set to 50ms intervalls.
- * This allows sound and vibration to be performed concurrently to any other logic.
+ * This allows sound and vibration to be performed concurrently to game logic and animations.
  *
  *
  */
